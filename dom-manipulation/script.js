@@ -73,7 +73,7 @@ function restoreLastQuote() {
   }
 }
 
-// ✅ REQUIRED POST + LOCAL ADD FUNCTION
+// POST new quote to server and add locally
 async function addQuote() {
   const textInput = document.getElementById("newQuoteText");
   const categoryInput = document.getElementById("newQuoteCategory");
@@ -98,7 +98,7 @@ async function addQuote() {
 
   alert("Quote added successfully!");
 
-  // ✅ POST to mock API
+  // POST to mock API
   try {
     const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
       method: "POST",
@@ -115,13 +115,13 @@ async function addQuote() {
   }
 }
 
-// ✅ REQUIRED GET FETCH FUNCTION
+// Fetch quotes from server API
 async function fetchQuotesFromServer() {
   try {
     const response = await fetch("https://jsonplaceholder.typicode.com/posts");
     const data = await response.json();
 
-    // Convert post titles into quote objects
+    // Map posts to quote objects
     const serverQuotes = data.slice(0, 5).map((post) => ({
       text: post.title,
       category: "General",
@@ -134,7 +134,7 @@ async function fetchQuotesFromServer() {
   }
 }
 
-// Show a temporary notification
+// Show notification message on screen
 function showNotification(message) {
   const note = document.createElement("div");
   note.textContent = message;
@@ -151,8 +151,8 @@ function showNotification(message) {
   setTimeout(() => note.remove(), 5000);
 }
 
-// Sync quotes with server and merge new ones
-async function syncWithServer() {
+// <-- RENAMED FUNCTION -->
+async function syncQuotes() {
   const serverQuotes = await fetchQuotesFromServer();
   const localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
 
@@ -180,5 +180,5 @@ categoryFilter.addEventListener("change", filterQuotes);
 // Initial setup
 populateCategories();
 restoreLastQuote();
-syncWithServer(); // Initial sync
-setInterval(syncWithServer, 60000); // Sync every 60 seconds
+syncQuotes(); // Initial sync with server
+setInterval(syncQuotes, 60000); // Sync every 60 seconds
