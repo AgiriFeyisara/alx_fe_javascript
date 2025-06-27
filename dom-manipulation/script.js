@@ -73,8 +73,8 @@ function restoreLastQuote() {
   }
 }
 
-// Add a new quote and update storage & dropdown
-function addQuote() {
+// ✅ REQUIRED POST + LOCAL ADD FUNCTION
+async function addQuote() {
   const textInput = document.getElementById("newQuoteText");
   const categoryInput = document.getElementById("newQuoteCategory");
 
@@ -86,7 +86,10 @@ function addQuote() {
     return;
   }
 
-  quotes.push({ text, category });
+  const newQuote = { text, category };
+
+  // Add locally
+  quotes.push(newQuote);
   saveQuotes();
   populateCategories();
 
@@ -94,9 +97,25 @@ function addQuote() {
   categoryInput.value = "";
 
   alert("Quote added successfully!");
+
+  // ✅ POST to mock API
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newQuote),
+    });
+
+    const result = await response.json();
+    console.log("Quote posted to server:", result);
+  } catch (error) {
+    console.error("Failed to post quote to server:", error);
+  }
 }
 
-// ✅ REQUIRED: Fetch quotes from a real mock API using async/await
+// ✅ REQUIRED GET FETCH FUNCTION
 async function fetchQuotesFromServer() {
   try {
     const response = await fetch("https://jsonplaceholder.typicode.com/posts");
@@ -115,7 +134,7 @@ async function fetchQuotesFromServer() {
   }
 }
 
-// Show a temporary notification on screen
+// Show a temporary notification
 function showNotification(message) {
   const note = document.createElement("div");
   note.textContent = message;
