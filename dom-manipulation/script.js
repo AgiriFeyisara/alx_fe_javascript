@@ -1,4 +1,4 @@
-// Load initial quotes from localStorage or use default ones
+// Load initial quotes from localStorage or use defaults
 let quotes = JSON.parse(localStorage.getItem("quotes")) || [
   {
     text: "The only limit to our realization of tomorrow is our doubts of today.",
@@ -18,7 +18,7 @@ const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteButton = document.getElementById("newQuote");
 const categoryFilter = document.getElementById("categoryFilter");
 
-// Save quotes to local storage
+// Save quotes to localStorage
 function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
@@ -96,19 +96,26 @@ function addQuote() {
   alert("Quote added successfully!");
 }
 
-// ✅ REQUIRED FUNCTION: Simulate fetching quotes from a server
-function fetchQuotesFromServer() {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { text: "Persistence guarantees results.", category: "Motivational" },
-        { text: "Stay hungry, stay foolish.", category: "Inspirational" },
-      ]);
-    }, 1500); // Simulate server delay
-  });
+// ✅ REQUIRED: Fetch quotes from a real mock API using async/await
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch("https://jsonplaceholder.typicode.com/posts");
+    const data = await response.json();
+
+    // Convert post titles into quote objects
+    const serverQuotes = data.slice(0, 5).map((post) => ({
+      text: post.title,
+      category: "General",
+    }));
+
+    return serverQuotes;
+  } catch (error) {
+    console.error("Failed to fetch server quotes:", error);
+    return [];
+  }
 }
 
-// Display a temporary notification
+// Show a temporary notification on screen
 function showNotification(message) {
   const note = document.createElement("div");
   note.textContent = message;
@@ -125,27 +132,26 @@ function showNotification(message) {
   setTimeout(() => note.remove(), 5000);
 }
 
-// Periodically sync local quotes with "server" quotes
-function syncWithServer() {
-  fetchQuotesFromServer().then((serverQuotes) => {
-    const localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
+// Sync quotes with server and merge new ones
+async function syncWithServer() {
+  const serverQuotes = await fetchQuotesFromServer();
+  const localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
 
-    const newQuotes = serverQuotes.filter(
-      (serverQuote) =>
-        !localQuotes.some(
-          (localQuote) =>
-            localQuote.text === serverQuote.text &&
-            localQuote.category === serverQuote.category
-        )
-    );
+  const newQuotes = serverQuotes.filter(
+    (serverQuote) =>
+      !localQuotes.some(
+        (localQuote) =>
+          localQuote.text === serverQuote.text &&
+          localQuote.category === serverQuote.category
+      )
+  );
 
-    if (newQuotes.length > 0) {
-      quotes = [...localQuotes, ...newQuotes];
-      saveQuotes();
-      populateCategories();
-      showNotification(`${newQuotes.length} new quote(s) synced from server.`);
-    }
-  });
+  if (newQuotes.length > 0) {
+    quotes = [...localQuotes, ...newQuotes];
+    saveQuotes();
+    populateCategories();
+    showNotification(`${newQuotes.length} new quote(s) synced from server.`);
+  }
 }
 
 // Event listeners
