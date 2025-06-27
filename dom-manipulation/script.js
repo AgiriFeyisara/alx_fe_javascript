@@ -169,7 +169,7 @@ async function syncQuotes() {
     quotes = [...localQuotes, ...newQuotes];
     saveQuotes();
     populateCategories();
-    showNotification(`${newQuotes.length} new quote(s) synced from server.`);
+    showNotification("Quotes synced with server!"); // <-- exact message
   }
 }
 
