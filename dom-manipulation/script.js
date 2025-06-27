@@ -1,4 +1,4 @@
-// Load quotes from local storage or use default
+// Load initial quotes from localStorage or use defaults
 let quotes = JSON.parse(localStorage.getItem("quotes")) || [
   {
     text: "The only limit to our realization of tomorrow is our doubts of today.",
@@ -18,16 +18,37 @@ const quoteDisplay = document.getElementById("quoteDisplay");
 const newQuoteButton = document.getElementById("newQuote");
 const categoryFilter = document.getElementById("categoryFilter");
 
-// Save quotes to local storage
+// Save quotes to localStorage
 function saveQuotes() {
   localStorage.setItem("quotes", JSON.stringify(quotes));
 }
 
-// Populate unique categories into the dropdown
+// Display a random quote based on selected category
+function filterQuotes() {
+  const selectedCategory = categoryFilter.value;
+  localStorage.setItem("selectedCategory", selectedCategory); // save filter
+
+  const filtered =
+    selectedCategory === "All"
+      ? quotes
+      : quotes.filter((q) => q.category === selectedCategory);
+
+  if (filtered.length === 0) {
+    quoteDisplay.innerHTML = "No quotes available for this category.";
+    return;
+  }
+
+  const randomQuote = filtered[Math.floor(Math.random() * filtered.length)];
+  quoteDisplay.innerHTML = `"${randomQuote.text}"<br><span class="quote-category">— ${randomQuote.category}</span>`;
+
+  // Save last viewed quote
+  sessionStorage.setItem("lastQuote", JSON.stringify(randomQuote));
+}
+
+// Populate the dropdown with unique categories
 function populateCategories() {
   const uniqueCategories = Array.from(new Set(quotes.map((q) => q.category)));
   categoryFilter.innerHTML = '<option value="All">All Categories</option>';
-
   uniqueCategories.forEach((cat) => {
     const option = document.createElement("option");
     option.value = cat;
@@ -35,7 +56,6 @@ function populateCategories() {
     categoryFilter.appendChild(option);
   });
 
-  // Restore previously selected category from localStorage
   const savedCategory = localStorage.getItem("selectedCategory");
   if (
     savedCategory &&
@@ -45,30 +65,7 @@ function populateCategories() {
   }
 }
 
-// Show a quote based on current filter
-function filterQuotes() {
-  const selectedCategory = categoryFilter.value;
-  localStorage.setItem("selectedCategory", selectedCategory); // remember user's choice
-
-  const filteredQuotes =
-    selectedCategory === "All"
-      ? quotes
-      : quotes.filter((q) => q.category === selectedCategory);
-
-  if (filteredQuotes.length === 0) {
-    quoteDisplay.innerHTML = "No quotes available for this category.";
-    return;
-  }
-
-  const randomQuote =
-    filteredQuotes[Math.floor(Math.random() * filteredQuotes.length)];
-  quoteDisplay.innerHTML = `"${randomQuote.text}"<br><span class="quote-category">— ${randomQuote.category}</span>`;
-
-  // Save last shown quote to sessionStorage
-  sessionStorage.setItem("lastQuote", JSON.stringify(randomQuote));
-}
-
-// Add new quote and update dropdown
+// Add a new quote
 function addQuote() {
   const textInput = document.getElementById("newQuoteText");
   const categoryInput = document.getElementById("newQuoteCategory");
@@ -91,18 +88,74 @@ function addQuote() {
   alert("Quote added successfully!");
 }
 
-// Restore last viewed quote from session
+// Restore last viewed quote
 function restoreLastQuote() {
-  const lastQuote = JSON.parse(sessionStorage.getItem("lastQuote"));
-  if (lastQuote) {
-    quoteDisplay.innerHTML = `"${lastQuote.text}"<br><span class="quote-category">— ${lastQuote.category}</span>`;
+  const last = sessionStorage.getItem("lastQuote");
+  if (last) {
+    const quote = JSON.parse(last);
+    quoteDisplay.innerHTML = `"${quote.text}"<br><span class="quote-category">— ${quote.category}</span>`;
   }
 }
 
-// Set up event listeners
+// Simulate server fetching quotes
+function fetchServerQuotes() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve([
+        { text: "Persistence guarantees results.", category: "Motivational" },
+        { text: "Stay hungry, stay foolish.", category: "Inspirational" },
+      ]);
+    }, 1500);
+  });
+}
+
+// Notify user of sync updates
+function showNotification(message) {
+  const note = document.createElement("div");
+  note.textContent = message;
+  note.style.position = "fixed";
+  note.style.bottom = "20px";
+  note.style.right = "20px";
+  note.style.backgroundColor = "#333";
+  note.style.color = "#fff";
+  note.style.padding = "10px 15px";
+  note.style.borderRadius = "5px";
+  note.style.zIndex = "1000";
+
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 5000);
+}
+
+// Sync quotes from server and resolve conflicts (server wins)
+function syncWithServer() {
+  fetchServerQuotes().then((serverQuotes) => {
+    const localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
+
+    const newQuotes = serverQuotes.filter(
+      (serverQuote) =>
+        !localQuotes.some(
+          (localQuote) =>
+            localQuote.text === serverQuote.text &&
+            localQuote.category === serverQuote.category
+        )
+    );
+
+    if (newQuotes.length > 0) {
+      const mergedQuotes = [...localQuotes, ...newQuotes];
+      quotes = mergedQuotes;
+      saveQuotes();
+      populateCategories();
+      showNotification(`${newQuotes.length} new quote(s) synced from server.`);
+    }
+  });
+}
+
+// Event Listeners
 newQuoteButton.addEventListener("click", filterQuotes);
 categoryFilter.addEventListener("change", filterQuotes);
 
-// Initial setup
+// Initial Setup
 populateCategories();
 restoreLastQuote();
+syncWithServer(); // initial sync
+setInterval(syncWithServer, 60000); // periodic sync every 60s
